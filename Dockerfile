@@ -2,7 +2,8 @@ FROM php:8.3-cli AS php-dependencies
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip \
+    && apt-get install -y --no-install-recommends git libxml2-dev unzip \
+    && docker-php-ext-install -j"$(nproc)" dom \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,8 +26,8 @@ RUN npm ci --no-audit --no-fund && npm run build
 FROM php:8.3-apache AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libicu-dev libonig-dev libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" curl intl mbstring opcache pcntl pdo_mysql zip \
+    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libicu-dev libonig-dev libxml2-dev libzip-dev \
+    && docker-php-ext-install -j"$(nproc)" curl dom intl mbstring opcache pcntl pdo_mysql zip \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
