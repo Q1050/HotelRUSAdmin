@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { router } from "@inertiajs/react";
 import { 
   Search, 
   Eye, 
@@ -16,78 +17,38 @@ import {
   Filter
 } from "lucide-react";
 import { AddButton } from "@/components/Sidebar";
+import { GuestFormModal } from "@/components/GuestFormModal";
+import { GuestCheckinModal } from "@/components/GuestCheckinModal";
 
-// Mock data for guests
-const guestsData = [
-  { 
-    id: 1, 
-    name: "John Smith", 
-    email: "john.smith@example.com",
-    phone: "+1-555-123-4567",
-    checkInDate: "2025-04-23", 
-    checkOutDate: "2025-04-25",
-    idStatus: "verified", 
-    roomNumber: "101" 
-  },
-  { 
-    id: 2, 
-    name: "Sarah Johnson", 
-    email: "sarah.j@example.com",
-    phone: "+1-555-987-6543", 
-    checkInDate: "2025-04-23", 
-    checkOutDate: "2025-04-27",
-    idStatus: "pending", 
-    roomNumber: "205" 
-  },
-  { 
-    id: 3, 
-    name: "Michael Brown", 
-    email: "m.brown@example.com",
-    phone: "+1-555-456-7890", 
-    checkInDate: "2025-04-23", 
-    checkOutDate: "2025-04-26",
-    idStatus: "verified", 
-    roomNumber: "310" 
-  },
-  { 
-    id: 4, 
-    name: "Emily Davis", 
-    email: "emily.d@example.com",
-    phone: "+1-555-222-3333", 
-    checkInDate: "2025-04-23", 
-    checkOutDate: "2025-04-24",
-    idStatus: "pending", 
-    roomNumber: "" 
-  },
-  { 
-    id: 5, 
-    name: "Robert Wilson", 
-    email: "r.wilson@example.com",
-    phone: "+1-555-444-5555", 
-    checkInDate: "2025-04-24", 
-    checkOutDate: "2025-04-28",
-    idStatus: "rejected", 
-    roomNumber: "" 
-  },
-  { 
-    id: 6, 
-    name: "Jessica Miller", 
-    email: "j.miller@example.com",
-    phone: "+1-555-666-7777", 
-    checkInDate: "2025-04-24", 
-    checkOutDate: "2025-04-26",
-    idStatus: "verified", 
-    roomNumber: "422" 
-  },
-];
+type GuestStatus = "verified" | "pending" | "rejected";
 
-const Guests = () => {
+interface GuestRow {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  checkInDate: string | null;
+  checkOutDate: string | null;
+  idStatus: GuestStatus;
+  roomNumber: string | null;
+  createdAt: string | null;
+}
+
+interface GuestsProps {
+  guests: GuestRow[];
+}
+
+const Guests = ({ guests }: GuestsProps) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | GuestStatus>("all");
+  const [showCreate, setShowCreate] = useState(false);
+  const [showCheckin, setShowCheckin] = useState(false);
   
-  const filteredGuests = guestsData.filter(guest => 
+  const filteredGuests = guests.filter((guest) =>
     guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    guest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    guest.phone.includes(searchTerm)
+    (guest.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (guest.phone ?? "").includes(searchTerm) &&
+    (statusFilter === "all" || guest.idStatus === statusFilter)
   );
   
   const guestColumns = [
@@ -98,11 +59,16 @@ const Guests = () => {
     {
       header: "Email",
       accessor: "email" as const,
+      cell: (item: GuestRow) => item.email || <span className="text-gray-400">N/A</span>,
     },
     {
       header: "Check-in Date",
       accessor: "checkInDate" as const,
-      cell: (item: typeof guestsData[0]) => {
+      cell: (item: GuestRow) => {
+        if (!item.checkInDate) {
+          return <span className="text-gray-400">N/A</span>;
+        }
+
         const date = new Date(item.checkInDate);
         return date.toLocaleDateString();
       },
@@ -110,7 +76,11 @@ const Guests = () => {
     {
       header: "Check-out Date",
       accessor: "checkOutDate" as const,
-      cell: (item: typeof guestsData[0]) => {
+      cell: (item: GuestRow) => {
+        if (!item.checkOutDate) {
+          return <span className="text-gray-400">N/A</span>;
+        }
+
         const date = new Date(item.checkOutDate);
         return date.toLocaleDateString();
       },
@@ -118,28 +88,32 @@ const Guests = () => {
     {
       header: "ID Status",
       accessor: "idStatus" as const,
-      cell: (item: typeof guestsData[0]) => (
+      cell: (item: GuestRow) => (
         <StatusBadge 
-          status={item.idStatus as "verified" | "pending" | "rejected"} 
+          status={item.idStatus}
         />
       ),
     },
     {
       header: "Room",
       accessor: "roomNumber" as const,
-      cell: (item: typeof guestsData[0]) => (
+      cell: (item: GuestRow) => (
         item.roomNumber ? item.roomNumber : <span className="text-gray-400">Not Assigned</span>
       ),
     },
     {
       header: "Actions",
       accessor: "id" as const,
-      cell: (item: typeof guestsData[0]) => (
+      cell: (item: GuestRow) => (
         <div className="flex gap-2">
           <Button 
             variant="outline" 
             size="sm"
             className="flex items-center gap-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.visit(route('dashboard.guests.show', item.id));
+            }}
           >
             <Eye size={14} />
             <span className="hidden sm:inline">View</span>
@@ -149,6 +123,10 @@ const Guests = () => {
               variant="outline" 
               size="sm"
               className="flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.patch(route('dashboard.guests.verify-id', item.id));
+              }}
             >
               <CheckCircle size={14} />
               <span className="hidden sm:inline">Verify</span>
@@ -159,9 +137,8 @@ const Guests = () => {
     }
   ];
 
-  const handleGuestView = (guest: typeof guestsData[0]) => {
-    console.log("View guest details:", guest);
-    window.location.href = `/dashboard/guests/${guest.id}`;
+  const handleGuestView = (guest: GuestRow) => {
+    router.visit(route('dashboard.guests.show', guest.id));
   };
 
   return (
@@ -169,13 +146,16 @@ const Guests = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-800">Guest Check-ins</h1>
         <div className="flex gap-3">
-          <ActionButton
+          <ActionButton onClick={() => router.reload({ only: ['guests'] })}
             icon={<RefreshCw size={16} />}
             variant="outline"
           >
             Refresh
           </ActionButton>
-          <AddButton>
+          <Button variant="outline" onClick={() => setShowCreate(true)}>
+            <Plus size={16} className="mr-2" />Guest Account
+          </Button>
+          <AddButton onClick={() => setShowCheckin(true)}>
             New Check-in
           </AddButton>
         </div>
@@ -194,17 +174,26 @@ const Guests = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="rounded-md border border-gray-300 px-3 py-2 text-sm">
+              <option value="all">All statuses</option><option value="pending">Pending</option><option value="verified">Verified</option><option value="rejected">Rejected</option>
+            </select>
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => setStatusFilter(statusFilter === 'all' ? 'pending' : 'all')}>
               <Filter size={16} />
               <span>Filter</span>
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => {
+              const rows = [['Name','Email','Phone','ID status','Room'], ...filteredGuests.map(g => [g.name, g.email ?? '', g.phone ?? '', g.idStatus, g.roomNumber ?? ''])];
+              const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = 'guests.csv'; link.click(); URL.revokeObjectURL(link.href);
+            }}>
               <Download size={16} />
               <span>Export</span>
             </Button>
           </div>
         </div>
       </div>
+      <GuestFormModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <GuestCheckinModal open={showCheckin} onClose={() => setShowCheckin(false)} onCreateAccount={() => setShowCreate(true)} />
 
       {/* Guests Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">

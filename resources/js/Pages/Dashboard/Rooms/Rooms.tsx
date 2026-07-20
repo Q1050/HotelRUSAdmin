@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link, router, useForm, usePage } from "@inertiajs/react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
@@ -14,8 +15,17 @@ import {
   Filter
 } from "lucide-react";
 
-// Mock data for rooms
-const roomsData = [
+enum typesofRooms{standard,deluxe,suite,penthouse }
+interface roomTypes{
+  type:typesofRooms
+}
+interface roomModel {
+  id:string,
+  roomType: roomTypes
+  floor: number,
+  status: roomStatus
+}
+const fallbackRooms = [
   {
     id: 1,
     roomNumber: "101",
@@ -106,10 +116,38 @@ const roomsData = [
   },
 ];
 
-const Rooms = () => {
+enum roomStatus {
+  available,
+  occupied,
+  cleaning
+}
+enum lockStatus {
+  locked,
+  unlocked}
+
+interface RoomHistoryEvent { id: number; type: string; description: string; guestName: string | null; actorName: string | null; occurredAt: string | null }
+interface LockDeviceView { id: number; name: string; provider: string; status: string; batteryLevel: number; lastSeenAt: string | null }
+type DisplayRoomStatus = "available" | "occupied" | "cleaning" | "pending_housekeeping" | "awaiting_inspection" | "maintenance_required";
+interface RoomView { id: number; roomNumber: string; roomType: string; floor: number; status: string; housekeepingStatus: string | null; housekeepingAssignee: string | null; maintenanceStatus: string | null; lockStatus: string; price: number; lastCleaned: string | null; guestName: string | null; history: RoomHistoryEvent[]; device: LockDeviceView | null }
+interface RoomsProps { rooms: RoomView[] }
+const Rooms = ({ rooms }: RoomsProps) => {
+  const currentUser = usePage().props.auth.user;
+  const canManage = currentUser.role === 'super_admin' || currentUser.role === 'manager' || currentUser.role === 'housekeeping';
+  const roomsData = rooms ?? [];
   const [searchTerm, setSearchTerm] = useState("");
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [roomFilter, setRoomFilter] = useState<"all" | "available" | "occupied" | "cleaning">("all");
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const form = useForm({ number: '', type: 'Standard', floor: '1', status: 'available', price: '', last_cleaned_at: '' });
+
+  const displayStatus = (room: RoomView): DisplayRoomStatus => {
+    if (room.status !== 'cleaning') return room.status as 'available' | 'occupied';
+    if (room.maintenanceStatus && !['inspected', 'cancelled'].includes(room.maintenanceStatus)) return 'maintenance_required';
+    if (room.housekeepingStatus === 'pending') return 'pending_housekeeping';
+    if (room.housekeepingStatus === 'completed') return 'awaiting_inspection';
+    return 'cleaning';
+  };
   
   // Apply filters
   const filteredRooms = roomsData.filter(room => {
@@ -130,13 +168,22 @@ const Rooms = () => {
   const availableRooms = roomsData.filter(room => room.status === "available").length;
   const occupiedRooms = roomsData.filter(room => room.status === "occupied").length;
 
-  const handleRoomClick = (room: typeof roomsData[0]) => {
-    console.log("Room clicked:", room);
+  const handleRoomClick = (room: RoomView) => {
+    if (!canManage) return;
+    setEditingId(room.id);
+    form.setData({ number: room.roomNumber, type: room.roomType, floor: String(room.floor), status: room.status, price: String(room.price), last_cleaned_at: room.lastCleaned ?? '' });
+    setShowForm(true);
   };
 
   const handleToggleLock = (roomId: number) => {
-    console.log("Toggle lock for room ID:", roomId);
-    // In a real app, we would update the room's lock status
+    router.patch(route('dashboard.rooms.lock', roomId), {}, { preserveScroll: true });
+  };
+
+  const openCreate = () => { setEditingId(null); form.reset(); form.setData({ number: '', type: 'Standard', floor: '1', status: 'available', price: '', last_cleaned_at: '' }); setShowForm(true); };
+  const saveRoom = (event: React.FormEvent) => {
+    event.preventDefault();
+    const options = { preserveScroll: true, onSuccess: () => setShowForm(false) };
+    editingId ? form.patch(route('dashboard.rooms.update', editingId), options) : form.post(route('dashboard.rooms.store'), options);
   };
 
   const getRoomStatusColor = (status: string) => {
@@ -153,15 +200,15 @@ const Rooms = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-800">Room Management</h1>
         <div className="flex gap-3">
-          <ActionButton
+          <ActionButton onClick={() => router.reload({ only: ['rooms'] })}
             icon={<RefreshCw size={16} />}
             variant="outline"
           >
             Refresh
           </ActionButton>
-          <AddButton>
+          {canManage && <AddButton onClick={openCreate}>
             Add Room
-          </AddButton>
+          </AddButton>}
         </div>
       </div>
 
@@ -216,6 +263,7 @@ const Rooms = () => {
               >
                 Occupied
               </Button>
+              <Button variant={roomFilter === "cleaning" ? "default" : "outline"} className="rounded-l-none border-l-0" onClick={() => setRoomFilter("cleaning")}>Cleaning</Button>
             </div>
             <div className="flex rounded-md overflow-hidden">
               <Button 
@@ -250,15 +298,16 @@ const Rooms = () => {
               className={`${getRoomStatusColor(room.status)} border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
               onClick={() => handleRoomClick(room)}
             >
-              <div className="p-4">
+              <div className="p-6">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-semibold">Room {room.roomNumber}</h3>
                   <StatusBadge 
-                    status={room.status as "available" | "occupied" | "cleaning"} 
+                    status={displayStatus(room)}
                   />
                 </div>
                 <p className="text-sm text-gray-500">{room.roomType} - Floor {room.floor}</p>
                 <p className="text-sm font-medium mt-1">${room.price} / night</p>
+                {room.status === 'cleaning' && <p className="mt-1 text-xs text-gray-600">Housekeeper: {room.housekeepingAssignee ?? 'Not assigned'}</p>}
                 
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   {room.guestName ? (
@@ -272,9 +321,9 @@ const Rooms = () => {
                 
                 <div className="mt-3 flex justify-between items-center">
                   <p className="text-xs text-gray-500">
-                    Last cleaned: {new Date(room.lastCleaned).toLocaleDateString()}
+                    Last cleaned: {room.lastCleaned ? new Date(room.lastCleaned).toLocaleDateString() : 'Not recorded'}
                   </p>
-                  <Button
+                  {canManage && <Button
                     variant="ghost"
                     size="sm"
                     className="p-1"
@@ -288,7 +337,7 @@ const Rooms = () => {
                     ) : (
                       <Unlock size={16} className="text-gray-600" />
                     )}
-                  </Button>
+                  </Button>}
                 </div>
               </div>
             </div>
@@ -323,7 +372,7 @@ const Rooms = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <StatusBadge 
-                      status={room.status as "available" | "occupied" | "cleaning"} 
+                      status={displayStatus(room)}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -333,7 +382,7 @@ const Rooms = () => {
                     <div className="text-sm text-gray-900">${room.price}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Button
+                    {canManage && <Button
                       variant="ghost"
                       size="sm"
                       className="p-1"
@@ -347,7 +396,7 @@ const Rooms = () => {
                       ) : (
                         <Unlock size={16} className="text-gray-600" />
                       )}
-                    </Button>
+                    </Button>}
                   </td>
                 </tr>
               ))}
@@ -355,8 +404,32 @@ const Rooms = () => {
           </table>
         </div>
       )}
+      {showForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={() => setShowForm(false)}>
+        <form onSubmit={saveRoom} onMouseDown={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <h2 className="mb-4 text-xl font-semibold">{editingId ? 'Edit room' : 'Add room'}</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <RoomField label="Room number" error={form.errors.number}><Input value={form.data.number} onChange={(e) => form.setData('number', e.target.value)} required /></RoomField>
+            <RoomField label="Type" error={form.errors.type}><select className="w-full rounded-md border border-gray-300 px-3 py-2" value={form.data.type} onChange={(e) => form.setData('type', e.target.value)} required><option value="Standard">Standard</option><option value="Deluxe">Deluxe</option><option value="Suite">Suite</option><option value="Penthouse">Penthouse</option></select></RoomField>
+            <RoomField label="Floor" error={form.errors.floor}><Input type="number" min="0" value={form.data.floor} onChange={(e) => form.setData('floor', e.target.value)} required /></RoomField>
+            <RoomField label="Nightly price" error={form.errors.price}><Input type="number" min="0" step="0.01" value={form.data.price} onChange={(e) => form.setData('price', e.target.value)} required /></RoomField>
+            <RoomField label="Status" error={form.errors.status}><select className="w-full rounded-md border border-gray-300 px-3 py-2" value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}><option value="available">Available</option><option value="occupied">Occupied</option><option value="cleaning">Cleaning</option></select></RoomField>
+            <RoomField label="Last cleaned" error={form.errors.last_cleaned_at}><Input type="date" value={form.data.last_cleaned_at} onChange={(e) => form.setData('last_cleaned_at', e.target.value)} /></RoomField>
+          </div>
+          {editingId && (() => { const room = roomsData.find(item => item.id === editingId); return <div className="mt-6 border-t pt-5"><div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Recent room history</h3>{room && <Link href={route('dashboard.rooms.history', room.id)} className="text-sm font-medium text-hotel-navy hover:underline">View all history</Link>}</div><p className="mb-3 text-sm text-gray-500">The five most recent assignments, access grants, cleaning, status, and lock events.</p><div className="space-y-3">{room?.history.slice(0, 5).map(event => <HistoryEntry key={event.id} event={event}/>)}{(room?.history.length ?? 0) === 0 && <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-500">No history has been recorded for this room yet.</p>}</div></div>; })()}
+          {editingId && <div className="mt-6 border-t pt-5"><h3 className="font-semibold">Smart door lock</h3>{(() => { const device=roomsData.find(room=>room.id===editingId)?.device; return device ? <div className="mt-3 rounded-md bg-gray-50 p-4"><div className="flex items-center justify-between"><div><strong>{device.name}</strong><p className="text-xs text-gray-500">Provider: {device.provider} · Last seen: {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : 'Never'}</p></div><span className={`rounded-full px-2 py-1 text-xs ${device.status==='online'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{device.status}</span></div><div className="mt-3 flex items-center justify-between"><span className="text-sm">Battery: {device.batteryLevel}%</span><div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={()=>router.post(route('dashboard.locks.sync',device.id),{}, {preserveScroll:true})}>Sync</Button><Button type="button" size="sm" onClick={()=>{const reason=window.prompt('Reason for remotely unlocking this door:');if(reason&&reason.trim().length>=5)router.post(route('dashboard.locks.unlock',device.id),{reason},{preserveScroll:true})}}>Remote Unlock</Button></div></div></div> : <div className="mt-3 rounded-md border border-dashed p-4 text-center"><p className="text-sm text-gray-600">No smart lock is paired with this room.</p><Button type="button" className="mt-3" size="sm" onClick={()=>router.post(route('dashboard.locks.pair',editingId),{}, {preserveScroll:true})}>Pair Simulated Lock</Button></div>; })()}</div>}
+          <div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button><Button disabled={form.processing}>{editingId ? 'Save changes' : 'Add room'}</Button></div>
+        </form>
+      </div>}
     </AdminLayout>
   );
 };
 
 export default Rooms;
+
+function RoomField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return <label className="space-y-1 text-sm font-medium text-gray-700"><span>{label}</span>{children}{error && <span className="block text-red-600">{error}</span>}</label>;
+}
+
+function HistoryEntry({ event }: { event: RoomHistoryEvent }) {
+  return <div className="border-l-2 border-hotel-navy pl-3"><div className="flex flex-col justify-between gap-1 sm:flex-row sm:gap-3"><strong className="text-sm">{event.description}</strong><span className="whitespace-nowrap text-xs text-gray-500">{event.occurredAt ? new Date(event.occurredAt).toLocaleString() : ''}</span></div><p className="text-xs text-gray-500">{event.guestName && `Guest: ${event.guestName}`}{event.guestName && event.actorName && ' · '}{event.actorName && `Staff: ${event.actorName}`}</p></div>;
+}

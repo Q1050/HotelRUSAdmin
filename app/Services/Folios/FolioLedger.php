@@ -1,0 +1,3 @@
+<?php
+namespace App\Services\Folios;use App\Models\Folio;
+class FolioLedger{public function recalculate(Folio$folio):Folio{$charges=(float)$folio->items()->where('voided',false)->sum('total_amount');$payments=(float)$folio->payments()->where('status','completed')->where('type','payment')->sum('amount');$refunds=(float)$folio->payments()->where('status','completed')->where('type','refund')->sum('amount');$balance=round($charges-$payments+$refunds,2);$folio->update(['charges_total'=>$charges,'payments_total'=>$payments,'refunds_total'=>$refunds,'balance'=>$balance,'status'=>$charges>0&&$balance<=0?'settled':'open','closed_at'=>$charges>0&&$balance<=0?($folio->closed_at??now()):null]);return$folio->refresh();}}

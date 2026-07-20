@@ -1,0 +1,89 @@
+openapi: 3.1.0
+info:
+  title: Hotel Guest Mobile API
+  version: 1.0.0
+  description: Versioned guest-only API. Authenticated requests require both a bearer token and X-Device-ID.
+servers:
+  - url: /api/v1
+paths:
+  /property:
+    get:
+      summary: Resolve guest-safe hotel branding, support details, policies, operating hours, currency, and timezone
+      parameters: [{name: X-Hotel-Slug, in: header, required: false, description: Defaults to default-hotel, schema: {type: string}}]
+      responses: {'200': {description: Tenant-specific public property configuration}}
+  /auth/register:
+    post: {summary: Create a guest account and device session, responses: {'201': {description: Created}, '422': {description: Validation error}}}
+  /auth/login:
+    post: {summary: Sign in and register or reactivate a device, responses: {'200': {description: Authenticated}, '422': {description: Invalid credentials}}}
+  /auth/refresh:
+    post: {summary: Rotate the current one-hour access token, security: [{bearerAuth: []}], responses: {'200': {description: Rotated}}}
+  /auth/logout:
+    post: {summary: Revoke the current device session, security: [{bearerAuth: []}], responses: {'200': {description: Signed out}}}
+  /auth/forgot-password:
+    post: {summary: Email a six-digit reset code, responses: {'200': {description: Generic accepted response}}}
+  /auth/reset-password:
+    post: {summary: Reset password with the 30-minute code, responses: {'200': {description: Reset}, '422': {description: Invalid or expired}}}
+  /me:
+    get: {summary: Current guest profile, security: [{bearerAuth: []}], responses: {'200': {description: Profile}}}
+  /stays/current:
+    get: {summary: Current active stay and assigned room, security: [{bearerAuth: []}], responses: {'200': {description: Stay or null}}}
+  /reservations:
+    get: {summary: Paginated guest reservations, security: [{bearerAuth: []}], responses: {'200': {description: Reservations}}}
+  /reservations/claim/request:
+    post: {summary: Send a 15-minute claim code after booking email or phone matching, security: [{bearerAuth: []}], responses: {'200': {description: Code sent or already linked}, '422': {description: Reservation details do not match}}}
+  /reservations/claim/verify:
+    post: {summary: Link an existing reservation using its six-digit code, security: [{bearerAuth: []}], responses: {'200': {description: Linked}, '422': {description: Invalid, expired, or locked code}}}
+  /reservations/{reservationId}/pre-arrival:
+    get:
+      summary: Get the authenticated guest's pre-arrival submission
+      security: [{bearerAuth: []}]
+      parameters: [{name: reservationId, in: path, required: true, schema: {type: integer}}]
+      responses: {'200': {description: Submission or null}, '404': {description: Reservation does not belong to guest}}
+    post:
+      summary: Submit private ID images, arrival details, and policy consent for staff review
+      security: [{bearerAuth: []}]
+      parameters: [{name: reservationId, in: path, required: true, schema: {type: integer}}]
+      responses: {'201': {description: Submitted}, '200': {description: Rejected submission replaced}, '404': {description: Reservation does not belong to guest}, '422': {description: Invalid or unavailable}}
+  /devices:
+    get: {summary: List account devices, security: [{bearerAuth: []}], responses: {'200': {description: Devices}}}
+  /devices/{deviceId}:
+    delete:
+      summary: Revoke a device and all its tokens
+      security: [{bearerAuth: []}]
+      parameters: [{name: deviceId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Revoked}, '404': {description: Not found}}
+  /devices/current/push-token:
+    put: {summary: Register or remove the current device FCM token, security: [{bearerAuth: []}], responses: {'200': {description: Updated}}}
+  /notifications:
+    get: {summary: Paginated mobile notification inbox with unread count, security: [{bearerAuth: []}], responses: {'200': {description: Notifications}}}
+  /notifications/read-all:
+    patch: {summary: Mark all guest notifications read, security: [{bearerAuth: []}], responses: {'200': {description: Updated}}}
+  /notifications/{notificationId}/read:
+    patch:
+      summary: Mark one owned notification read
+      security: [{bearerAuth: []}]
+      parameters: [{name: notificationId, in: path, required: true, schema: {type: integer}}]
+      responses: {'200': {description: Updated}, '404': {description: Not owned}}
+  /notification-preferences:
+    get: {summary: Get guest notification categories, security: [{bearerAuth: []}], responses: {'200': {description: Preferences}}}
+    put: {summary: Update booking, access, service, checkout, and marketing preferences, security: [{bearerAuth: []}], responses: {'200': {description: Updated}}}
+  /requests:
+    get: {summary: List guest service requests, security: [{bearerAuth: []}], responses: {'200': {description: Requests}}}
+    post: {summary: Create housekeeping, linen, amenity, or maintenance work for the active room, security: [{bearerAuth: []}], responses: {'201': {description: Created}, '422': {description: No active stay or validation error}}}
+  /requests/{requestId}:
+    get: {summary: Request details, guest-visible messages, and timeline, security: [{bearerAuth: []}], responses: {'200': {description: Request thread}, '404': {description: Not owned}}}
+  /requests/{requestId}/messages:
+    post: {summary: Send a guest message with optional private image attachment, security: [{bearerAuth: []}], responses: {'201': {description: Sent}, '422': {description: Request closed}}}
+  /requests/{requestId}/cancel:
+    patch: {summary: Cancel a pending or assigned request before work starts, security: [{bearerAuth: []}], responses: {'200': {description: Cancelled}, '422': {description: Work already started}}}
+  /requests/{requestId}/resolution:
+    patch: {summary: Confirm a completed request or reopen it as still needing attention, security: [{bearerAuth: []}], responses: {'200': {description: Updated}, '422': {description: Request is not completed}}}
+  /access/credential:
+    post: {summary: Retrieve an encrypted-at-rest mobile credential after scanning the assigned room QR or NFC marker, security: [{bearerAuth: []}], responses: {'200': {description: Credential}, '403': {description: Identity, payment, or marker rejected}}}
+  /access/unlock:
+    post: {summary: Unlock after scanning the assigned room QR or NFC marker, security: [{bearerAuth: []}], responses: {'200': {description: Accepted}, '403': {description: Access rejected}}}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  parameters:
+    DeviceId: {name: X-Device-ID, in: header, required: true, schema: {type: string, format: uuid}}

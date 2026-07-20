@@ -45,6 +45,12 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if ($request->user()->role === 'super_admin') {
+            return Redirect::route('profile.edit')->withErrors([
+                'password' => 'Super Admin accounts must be transferred or demoted before deletion.',
+            ]);
+        }
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);

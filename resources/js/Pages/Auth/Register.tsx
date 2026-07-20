@@ -8,9 +8,9 @@ import { FormEventHandler } from 'react';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
-        formality: '',
-        firstName: '',
-        lastName: '',
+        formality: 'Mr',
+        firstName: 'Admin',
+        lastName: 'User',
         email: '',
         password: '',
         password_confirmation: '',

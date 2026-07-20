@@ -47,6 +47,30 @@
   }
 }
 
+/* Keep maintenance work-order modals compact and visually separated. */
+div.fixed.inset-0:has(> form[class*="max-h-[90vh]"]),
+div.fixed.inset-0:has(> div[class*="max-h-[92vh]"]) {
+  background-color: rgb(0 0 0 / 0.4) !important;
+  padding: 1.5rem !important;
+  backdrop-filter: blur(3px);
+}
+
+form[class*="max-h-[90vh]"] {
+  max-width: 36rem !important;
+  max-height: 85vh !important;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 1rem !important;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.22) !important;
+}
+
+div[class*="max-h-[92vh]"][class*="max-w-3xl"] {
+  max-width: 42rem !important;
+  max-height: 85vh !important;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 1rem !important;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.22) !important;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -94,46 +118,3 @@
     @apply bg-white p-6 rounded-lg shadow-md border border-hotel-beige/50 hover:shadow-lg transition-all;
   }
 }
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-

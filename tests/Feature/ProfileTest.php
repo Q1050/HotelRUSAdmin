@@ -12,7 +12,7 @@ class ProfileTest extends TestCase
 
     public function test_profile_page_is_displayed(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'front_desk']);
 
         $response = $this
             ->actingAs($user)
@@ -63,7 +63,7 @@ class ProfileTest extends TestCase
 
     public function test_user_can_delete_their_account(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'front_desk']);
 
         $response = $this
             ->actingAs($user)
@@ -94,6 +94,13 @@ class ProfileTest extends TestCase
             ->assertSessionHasErrors('password')
             ->assertRedirect('/profile');
 
+        $this->assertNotNull($user->fresh());
+    }
+
+    public function test_super_admin_cannot_delete_own_account(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($user)->delete('/profile', ['password' => 'password'])->assertSessionHasErrors('password');
         $this->assertNotNull($user->fresh());
     }
 }

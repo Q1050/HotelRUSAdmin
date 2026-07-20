@@ -51,4 +51,11 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_suspended_staff_cannot_authenticate(): void
+    {
+        $user = User::factory()->create(['status' => 'suspended']);
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->assertGuest();
+    }
 }

@@ -1,0 +1,3 @@
+<?php
+namespace App\Http\Middleware;use App\Models\{Room,User};use Closure;use Illuminate\Http\Request;use Symfony\Component\HttpFoundation\Response;
+class EnsureHotelLimit{public function handle(Request$request,Closure$next,string$resource):Response{$hotel=app('currentHotel');$limit=$hotel->limit($resource);if($limit===null)return$next($request);$used=match($resource){'rooms'=>Room::withoutGlobalScopes()->where('hotel_id',$hotel->id)->count(),'staff'=>User::withoutGlobalScopes()->where('hotel_id',$hotel->id)->count(),default=>abort(500,'Unknown subscription limit.')};abort_if($used>=$limit,422,"The {$resource} limit for this subscription plan has been reached.");return$next($request);}}

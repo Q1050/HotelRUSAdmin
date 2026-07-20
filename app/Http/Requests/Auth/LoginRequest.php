@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
+use App\Services\Security\AuditLogger;
 
 class LoginRequest extends FormRequest
 {
@@ -41,8 +43,14 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt([
+            'email' => $this->string('email')->toString(),
+            'password' => $this->string('password')->toString(),
+            'status' => 'active',
+        ], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+            $subject=User::where('email',$this->string('email')->toString())->first();
+            AuditLogger::record($this,'login_failed','authentication','warning','Failed sign-in attempt for '.$this->string('email')->toString().'.',$subject,null,['email'=>$this->string('email')->toString()]);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),

@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration{public function up():void{Schema::create('hotel_integrations',function(Blueprint$t){$t->id();$t->foreignId('hotel_id')->constrained()->cascadeOnDelete();$t->string('type');$t->boolean('active')->default(true);$t->text('configuration');$t->string('connection_status')->default('untested');$t->text('last_error')->nullable();$t->timestamp('last_tested_at')->nullable();$t->timestamps();$t->unique(['hotel_id','type']);});}public function down():void{Schema::dropIfExists('hotel_integrations');}};

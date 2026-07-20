@@ -1,0 +1,3 @@
+<?php
+namespace App\Support;
+final class Features{public const CORE='core';public const HOUSEKEEPING='housekeeping';public const MAINTENANCE='maintenance';public const FOOD_BEVERAGE='food_beverage';public const LOCKS='smart_locks';public const REPORTS='reports';public const SECURITY='security';public const MOBILE='guest_mobile';public const PRE_ARRIVAL='pre_arrival';public const NOTIFICATIONS='notifications';public const CONVERSATIONS='conversations';public const ALL=[self::CORE,self::HOUSEKEEPING,self::MAINTENANCE,self::FOOD_BEVERAGE,self::LOCKS,self::REPORTS,self::SECURITY,self::MOBILE,self::PRE_ARRIVAL,self::NOTIFICATIONS,self::CONVERSATIONS];}

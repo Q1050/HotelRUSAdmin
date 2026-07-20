@@ -21,6 +21,8 @@ class DashboardResource extends JsonResource
                 'email' => $this->email,
                 'formality' => $this->formality,
                 'initials' => strtoupper(substr($this->firstName, 0, 1) . substr($this->lastName, 0, 1)),
+                'role' => $this->role,
+                'status' => $this->status,
             ],
             // Add more dashboard data here later (e.g. stats, check-ins)
         ];

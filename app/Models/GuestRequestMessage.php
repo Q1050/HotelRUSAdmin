@@ -1,0 +1,3 @@
+<?php
+namespace App\Models;use Illuminate\Database\Eloquent\Model;use Illuminate\Database\Eloquent\Relations\BelongsTo;
+class GuestRequestMessage extends Model{protected $fillable=['guest_service_request_id','guest_id','user_id','message','internal','attachment_path','read_by_guest_at','read_by_staff_at'];protected function casts():array{return['internal'=>'boolean','read_by_guest_at'=>'datetime','read_by_staff_at'=>'datetime'];}public function request():BelongsTo{return$this->belongsTo(GuestServiceRequest::class,'guest_service_request_id');}public function guest():BelongsTo{return$this->belongsTo(Guest::class);}public function user():BelongsTo{return$this->belongsTo(User::class);}}

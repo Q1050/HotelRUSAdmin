@@ -14,6 +14,10 @@ export default function Login({
     status?: string;
     canResetPassword: boolean;
 }) {
+    /*
+    admin@gmail.com Password
+
+    */
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',

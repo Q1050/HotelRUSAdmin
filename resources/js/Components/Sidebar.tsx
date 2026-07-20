@@ -1,128 +1,46 @@
-
-import { useState } from "react";
-import { Link } from "@inertiajs/react";
+import { ReactNode, useState } from "react";
+import { Link, usePage } from "@inertiajs/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { 
-  Home, 
-  Users, 
-  Bed, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
-  Lock, 
-  Plus
-} from "lucide-react";
+import { Activity, BarChart3, Bed, BellRing, BookOpenCheck, Building2, Calculator, CalendarCheck, CalendarRange, ChevronDown, CircleDollarSign, Home, KeyRound, Landmark, Lock, LogOut, Mail, Menu, MoonStar, Plus, Settings, ShieldAlert, SprayCan, UserCog, Users, UtensilsCrossed, WalletCards, Wrench } from "lucide-react";
 
-interface SidebarLinkProps {
-  to: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  isActive?: boolean;
-  isCollapsed?: boolean;
+type Item={to:string;label:string;icon:ReactNode;active?:boolean};
+type GroupProps={label:string;icon:ReactNode;items:Item[];collapsed:boolean;currentPath:string};
+
+function SidebarLink({to,icon,label,active,collapsed,nested=false}:Item&{collapsed:boolean;nested?:boolean}){
+ return <Link href={to} title={collapsed?label:undefined} className={cn("flex items-center gap-3 rounded-md px-3 py-2 transition-colors",active?"bg-sidebar-accent text-sidebar-accent-foreground":"text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",collapsed&&"justify-center",nested&&!collapsed&&"ml-4 pl-4 text-sm")}><span className="shrink-0">{icon}</span>{!collapsed&&<span className="truncate">{label}</span>}</Link>;
 }
 
-const SidebarLink = ({ to, icon, children, isActive = false, isCollapsed = false }: SidebarLinkProps) => {
-  return (
-    <Link
-      href={to}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-        isActive 
-          ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-        isCollapsed && "justify-center"
-      )}
-    >
-      {icon}
-      {!isCollapsed && <span>{children}</span>}
-    </Link>
-  );
+function SidebarGroup({label,icon,items,collapsed,currentPath}:GroupProps){
+ const groupActive=items.some(item=>item.active??(item.to===currentPath));
+ const[open,setOpen]=useState(groupActive);
+ if(!items.length)return null;
+ if(collapsed)return <SidebarLink {...items[0]} icon={icon} label={label} active={groupActive} collapsed/>;
+ return <div><button type="button" onClick={()=>setOpen(value=>!value)} aria-expanded={open} className={cn("flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",groupActive?"bg-sidebar-accent/70 text-sidebar-accent-foreground":"text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground")}><span className="shrink-0">{icon}</span><span className="flex-1 truncate">{label}</span><ChevronDown size={15} className={cn("transition-transform",open&&"rotate-180")}/></button>{open&&<div className="mt-1 space-y-1 border-l border-white/20 pl-1">{items.map(item=><SidebarLink key={item.to} {...item} collapsed={false} nested/>)}</div>}</div>;
+}
+
+export const Sidebar=()=>{
+ const[isCollapsed,setIsCollapsed]=useState(false);const currentPath=window.location.pathname;const page=usePage().props as any;const user=page.auth.user;const system=page.system;const hotel=page.hotel as {features?:string[];branding?:{name:string;logo_url:string|null;primary_color:string;accent_color:string}}|undefined;
+ const permissions:string[]=user.permissions??[];const can=(permission:string)=>permissions.includes(permission);const enabled=(feature:string)=>(hotel?.features??[]).includes(feature);
+ const reservationItems:Item[]=[{to:"/dashboard/bookings",label:"Reservation List",icon:<CalendarCheck size={17}/>,active:currentPath==="/dashboard/bookings"},{to:"/dashboard/bookings/planner",label:"Room Planner",icon:<CalendarRange size={17}/>,active:currentPath.startsWith("/dashboard/bookings/planner")},{to:"/dashboard/groups",label:"Groups & Corporate",icon:<Building2 size={17}/>,active:currentPath.startsWith('/dashboard/groups')},can('stays.force_departure')?{to:"/dashboard/departure-reviews",label:"Departure Reviews",icon:<WalletCards size={17}/>,active:currentPath.startsWith('/dashboard/departure-reviews')}:null].filter(Boolean) as Item[];
+ const financeItems:Item[]=[can('guests')?{to:"/dashboard/folios",label:"Guest Folios",icon:<WalletCards size={17}/>,active:currentPath.startsWith('/dashboard/folios')}:null,can('stays.force_departure')?{to:"/dashboard/deposits",label:"Deposits & Credits",icon:<CircleDollarSign size={17}/>,active:currentPath.startsWith('/dashboard/deposits')}:null,can('stays.force_departure')?{to:"/dashboard/receivables",label:"Accounts Receivable",icon:<Landmark size={17}/>,active:currentPath.startsWith('/dashboard/receivables')||currentPath.startsWith('/dashboard/corporate-invoices')}:null,can('stays.force_departure')?{to:"/dashboard/communications",label:"Financial Emails",icon:<Mail size={17}/>,active:currentPath.startsWith('/dashboard/communications')}:null,can('stays.force_departure')?{to:"/dashboard/night-audit",label:"Night Audit",icon:<MoonStar size={17}/>,active:currentPath.startsWith('/dashboard/night-audit')}:null,can('stays.force_departure')?{to:"/dashboard/accounting",label:"Accounting Exports",icon:<BookOpenCheck size={17}/>,active:currentPath.startsWith('/dashboard/accounting')}:null,can('settings')?{to:"/dashboard/settings/financial",label:"Financial Rules",icon:<Calculator size={17}/>,active:currentPath.startsWith('/dashboard/settings/financial')}:null].filter(Boolean) as Item[];
+ const roomItems:Item[]=[can('rooms.view')?{to:"/dashboard/rooms",label:"Room Inventory",icon:<Bed size={17}/>,active:currentPath.startsWith('/dashboard/rooms')}:null,enabled('smart_locks')&&can('rooms.manage')?{to:"/dashboard/locks",label:"Lock Management",icon:<KeyRound size={17}/>,active:currentPath.startsWith('/dashboard/locks')}:null].filter(Boolean) as Item[];
+ const operationItems:Item[]=[enabled('housekeeping')&&can('housekeeping')?{to:"/dashboard/housekeeping",label:"Housekeeping",icon:<SprayCan size={17}/>,active:currentPath.startsWith('/dashboard/housekeeping')}:null,enabled('maintenance')&&can('maintenance')?{to:"/dashboard/maintenance",label:"Maintenance",icon:<Wrench size={17}/>,active:currentPath.startsWith('/dashboard/maintenance')}:null,enabled('food_beverage')&&can('food_beverage')?{to:"/dashboard/food-beverage",label:"Food & Beverage",icon:<UtensilsCrossed size={17}/>,active:currentPath.startsWith('/dashboard/food-beverage')}:null].filter(Boolean) as Item[];
+ const adminItems:Item[]=[can('users')?{to:"/dashboard/users",label:"Users & Roles",icon:<UserCog size={17}/>,active:currentPath.startsWith('/dashboard/users')||currentPath.startsWith('/dashboard/roles')}:null,can('stays.force_departure')?{to:"/dashboard/notification-center",label:"Notification Center",icon:<BellRing size={17}/>,active:currentPath.startsWith('/dashboard/notification-center')}:null,enabled('reports')&&can('reports')?{to:"/dashboard/reports",label:"Reports & Analytics",icon:<BarChart3 size={17}/>,active:currentPath.startsWith('/dashboard/reports')}:null,can('settings')?{to:"/dashboard/settings",label:"Property Settings",icon:<Settings size={17}/>,active:currentPath==='/dashboard/settings'}:null,enabled('security')&&can('security')?{to:"/dashboard/integration-health",label:"Integration Health",icon:<Activity size={17}/>,active:currentPath.startsWith('/dashboard/integration-health')}:null,enabled('security')&&can('security')?{to:"/dashboard/security",label:"Security & Audit",icon:<ShieldAlert size={17}/>,active:currentPath.startsWith('/dashboard/security')}:null].filter(Boolean) as Item[];
+ return <aside className={cn("fixed left-0 top-0 z-30 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",isCollapsed?"w-16":"w-64")} style={{backgroundColor:hotel?.branding?.primary_color||undefined}}>
+  <div className="flex items-center justify-between border-b border-sidebar-border p-4">{!isCollapsed&&<div className="flex min-w-0 items-center gap-2">{hotel?.branding?.logo_url?<img src={hotel.branding.logo_url} alt="" className="h-8 w-8 rounded-lg object-contain"/>:<Lock style={{color:hotel?.branding?.accent_color}} className="text-hotel-gold" size={24}/>}<h1 className="truncate text-xl font-bold text-white">{hotel?.branding?.name||'HotelKey'}</h1></div>}<Button variant="ghost" size="icon" className="text-sidebar-foreground hover:bg-sidebar-accent md:hidden" onClick={()=>setIsCollapsed(value=>!value)}>{isCollapsed?<Menu size={20}/>:<Menu size={20}/>}</Button></div>
+  <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+   <SidebarLink to="/dashboard/" label="Dashboard" icon={<Home size={20}/>} active={currentPath==="/dashboard/"} collapsed={isCollapsed}/>
+   {can('guests')&&<SidebarLink to="/dashboard/guests" label="Guest Check-ins" icon={<Users size={20}/>} active={currentPath.startsWith('/dashboard/guests')} collapsed={isCollapsed}/>} 
+   {can('guests')&&<SidebarGroup label="Reservations" icon={<CalendarCheck size={20}/>} items={reservationItems} collapsed={isCollapsed} currentPath={currentPath}/>} 
+   <SidebarGroup label="Finance & Accounting" icon={<Landmark size={20}/>} items={financeItems} collapsed={isCollapsed} currentPath={currentPath}/>
+   <SidebarGroup label="Rooms & Access" icon={<Bed size={20}/>} items={roomItems} collapsed={isCollapsed} currentPath={currentPath}/>
+   <SidebarGroup label="Operations" icon={<Wrench size={20}/>} items={operationItems} collapsed={isCollapsed} currentPath={currentPath}/>
+   <SidebarGroup label="Administration" icon={<Settings size={20}/>} items={adminItems} collapsed={isCollapsed} currentPath={currentPath}/>
+   {user.is_platform_admin&&<SidebarLink to="/platform" label="Platform Admin" icon={<Building2 size={20}/>} active={currentPath.startsWith('/platform')} collapsed={isCollapsed}/>} 
+  </nav>
+  <div className="border-t border-sidebar-border p-2">{!isCollapsed&&<p className="mb-2 px-3 text-xs text-white">v{system.version} · {system.releaseName}</p>}<Link href={route('logout')} method="post" as="button" className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground/80 hover:bg-sidebar-accent/50"><LogOut size={20}/>{!isCollapsed&&<span>Logout</span>}</Link></div>
+ </aside>;
 };
 
-export const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  const currentPath = window.location.pathname;
-  
-  return (
-    <div
-      className={cn(
-        "bg-sidebar h-screen fixed left-0 top-0 z-30 flex flex-col border-r border-sidebar-border transition-all duration-300",
-        isCollapsed ? "w-16" : "w-64"
-      )}
-    >
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <Lock className="text-hotel-gold" size={24} />
-            <h1 className="text-xl font-bold text-white">HotelKey</h1>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? <Menu size={20} /> : <X size={20} />}
-        </Button>
-      </div>
-      
-      <div className="flex flex-col gap-1 p-2 flex-1">
-        <SidebarLink 
-          to="/dashboard/" 
-          icon={<Home size={20} />} 
-          isActive={currentPath === "/dashboard/"} 
-          isCollapsed={isCollapsed}
-        >
-          Dashboard
-        </SidebarLink>
-        <SidebarLink 
-          to="/dashboard/guests" 
-          icon={<Users size={20} />} 
-          isActive={currentPath === "/dashboard/guests"} 
-          isCollapsed={isCollapsed}
-        >
-          Guest Check-ins
-        </SidebarLink>
-        <SidebarLink 
-          to="/dashboard/rooms" 
-          icon={<Bed size={20} />} 
-          isActive={currentPath === "/dashboard/rooms"} 
-          isCollapsed={isCollapsed}
-        >
-          Rooms
-        </SidebarLink>
-        <SidebarLink 
-          to="/dashboard/settings" 
-          icon={<Settings size={20} />} 
-          isActive={currentPath === "/dashboard/settings"} 
-          isCollapsed={isCollapsed}
-        >
-          Settings
-        </SidebarLink>
-      </div>
-      
-      <div className="p-2 border-t border-sidebar-border">
-        <SidebarLink 
-          to="/dashboard/logout" 
-          icon={<LogOut size={20} />} 
-          isCollapsed={isCollapsed}
-        >
-          Logout
-        </SidebarLink>
-      </div>
-    </div>
-  );
-};
-
-export const AddButton = ({ children, onClick }: { children: React.ReactNode, onClick?: () => void }) => {
-  return (
-    <Button onClick={onClick} className="flex items-center gap-2 bg-hotel-navy hover:bg-hotel-navy/90">
-      <Plus size={16} />
-      <span>{children}</span>
-    </Button>
-  );
-};
+export const AddButton=({children,onClick}:{children:ReactNode;onClick?:()=>void})=><Button onClick={onClick} className="flex items-center gap-2 bg-hotel-navy hover:bg-hotel-navy/90"><Plus size={16}/><span>{children}</span></Button>;

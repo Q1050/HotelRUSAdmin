@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Notifications\AdminTwoFactorCode;
+use App\Services\Security\AuditLogger;
+use Illuminate\Support\Facades\Hash;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -31,7 +34,12 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
         $request->session()->regenerate();
-        return redirect()->intended(route('dashboard.main', absolute: false));
+        $user=$request->user();
+        AuditLogger::record($request,'login_password_verified','authentication','normal','Password verified for '.$user->email.'.',$user);
+        if($user->role==='super_admin'&&$user->two_factor_enabled){$code=(string)random_int(100000,999999);$user->forceFill(['two_factor_code_hash'=>Hash::make($code),'two_factor_code_expires_at'=>now()->addMinutes(10)])->save();$request->session()->put('two_factor_user_id',$user->id);$user->notify(new AdminTwoFactorCode($code));Auth::logout();return redirect()->route('two-factor.challenge');}
+        $request->user()->forceFill(['last_login_at' => now()])->save();
+        AuditLogger::record($request,'login_succeeded','authentication','normal','Staff signed in successfully.',$request->user());
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**
@@ -39,6 +47,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if($request->user())AuditLogger::record($request,'logout','authentication','normal','Staff signed out.',$request->user());
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

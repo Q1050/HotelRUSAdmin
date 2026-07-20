@@ -17,13 +17,9 @@ export const Login = () => {
     
     const submit: FormEventHandler = async(e) => {
         e.preventDefault();
-        console.log("Login attempt:", { email: data.email, password: data.password });
        // window.location.href = '/dashboard/'
        // navigate("/dashboard");
         post('/authenticate/login', {
-          onSuccess: () => {
-            window.location.href = '/dashboard/';
-          },
           onError: () => {
             alert('Login failed');
           }
@@ -47,6 +43,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
+      <Head title="Welcome Back Admin: Sign in to your account" />
       {/* Left Side - Brand */}
       <div className="hidden md:flex md:w-1/2 bg-hotel-navy p-8 flex-col justify-between">
         <div className="flex items-center gap-2">
@@ -100,9 +97,9 @@ export const Login = () => {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <a href="/register/" className="text-sm text-hotel-navy hover:underline">
+                <Link href={route('password.request')} className="text-sm text-hotel-navy hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input
                 id="password"

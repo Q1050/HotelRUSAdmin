@@ -1,0 +1,3 @@
+<?php
+namespace App\Models;use Illuminate\Database\Eloquent\Model;use Illuminate\Database\Eloquent\Relations\BelongsTo;
+class GuestRequestEvent extends Model{public $timestamps=false;protected $fillable=['guest_service_request_id','guest_id','user_id','event_type','label','metadata','occurred_at'];protected function casts():array{return['metadata'=>'array','occurred_at'=>'datetime'];}public function request():BelongsTo{return$this->belongsTo(GuestServiceRequest::class,'guest_service_request_id');}public function guest():BelongsTo{return$this->belongsTo(Guest::class);}public function user():BelongsTo{return$this->belongsTo(User::class);}}

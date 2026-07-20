@@ -1,0 +1,3 @@
+<?php
+namespace App\Notifications;use Illuminate\Bus\Queueable;use Illuminate\Notifications\Messages\MailMessage;use Illuminate\Notifications\Notification;
+class PreArrivalReviewed extends Notification{use Queueable;public function __construct(private string $reference,private string $status,private ?string $notes=null){}public function via(object $notifiable):array{return filled($notifiable->email)?['mail']:[];}public function toMail(object $notifiable):MailMessage{$mail=(new MailMessage)->subject('Pre-arrival check-in update')->line("Your pre-arrival check-in for {$this->reference} was {$this->status}.");if($this->notes)$mail->line($this->notes);return$mail;}}

@@ -1,0 +1,3 @@
+<?php
+namespace App\Http\Middleware;use App\Support\Features;use Closure;use Illuminate\Http\Request;use Symfony\Component\HttpFoundation\Response;
+class EnsureHotelFeature{public function handle(Request$request,Closure$next,string$feature):Response{abort_unless(in_array($feature,Features::ALL,true),500,'Unknown hotel feature.');if(!app('currentHotel')->hasFeature($feature))return$request->expectsJson()?response()->json(['message'=>'This module is not included in the hotel subscription.','feature'=>$feature],403):abort(403,'This module is not included in the hotel subscription.');return$next($request);}}

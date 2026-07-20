@@ -1,0 +1,3 @@
+<?php
+namespace App\Notifications;use Illuminate\Bus\Queueable;use Illuminate\Notifications\Messages\MailMessage;use Illuminate\Notifications\Notification;
+class ReservationClaimCode extends Notification{use Queueable;public function __construct(private string $code,private string $reference){}public function via(object $notifiable):array{return['mail'];}public function toMail(object $notifiable):MailMessage{return(new MailMessage)->subject('Verify your reservation')->line("Use this code to link reservation {$this->reference} to your guest app:")->line($this->code)->line('The code expires in 15 minutes.');}}

@@ -1,0 +1,3 @@
+<?php
+namespace App\Models;use Illuminate\Database\Eloquent\Model;use Illuminate\Database\Eloquent\Relations\BelongsTo;
+class GuestNotificationPreference extends Model{protected $attributes=['booking_updates'=>true,'access_updates'=>true,'service_updates'=>true,'checkout_reminders'=>true,'marketing'=>false];protected $fillable=['guest_id','booking_updates','access_updates','service_updates','checkout_reminders','marketing'];protected function casts():array{return['booking_updates'=>'boolean','access_updates'=>'boolean','service_updates'=>'boolean','checkout_reminders'=>'boolean','marketing'=>'boolean'];}public function guest():BelongsTo{return$this->belongsTo(Guest::class);}}
