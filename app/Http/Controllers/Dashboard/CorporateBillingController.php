@@ -34,6 +34,7 @@ class CorporateBillingController extends Controller
             $bucket = $days <= 0 ? 'current' : ($days <= 30 ? 'days_1_30' : ($days <= 60 ? 'days_31_60' : ($days <= 90 ? 'days_61_90' : 'days_90_plus')));
             $aging[$bucket] += (float) $invoice->balance;
         }
+        
         return Inertia::render('Receivables/Index', ['currency' => app('currentHotel')->currency, 'aging' => $aging, 'accounts' => CorporateAccount::withCount('invoices')->orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'code' => $a->code, 'status' => $a->status, 'terms' => $a->payment_terms_days, 'invoiceCount' => $a->invoices_count, 'balance' => (float) $a->invoices()->whereNotIn('status', ['paid', 'void'])->sum('balance')]), 'groups' => GroupBooking::with('corporateAccount')->whereNotNull('corporate_account_id')->whereNotIn('status', ['cancelled'])->get()->map(function ($group) {
             $master = Folio::where('group_booking_id', $group->id)->first();
             $eligible = FolioItem::whereHas('folio.reservation', fn ($q) => $q->where('group_booking_id', $group->id))->where('voided', false)->count();
