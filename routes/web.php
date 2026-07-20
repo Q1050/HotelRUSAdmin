@@ -20,7 +20,7 @@ Route::get('/', function () {
 Route::prefix('authenticate')->name('auth.')->middleware('guest')->group(function () {
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 });
 Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified', 'hotel', 'staff.permission:dashboard'])->group(function () {
     Route::patch('/notifications/read', [\App\Http\Controllers\Dashboard\NotificationController::class, 'read'])->name('notifications.read');
