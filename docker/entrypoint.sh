@@ -7,15 +7,6 @@ if [ -z "${APP_URL:-}" ] && [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
 fi
 export APP_NAME="${APP_NAME:-HotelCheckin}"
 
-if [ "${APP_ENV:-production}" = "production" ]; then
-    : "${APP_KEY:?APP_KEY must be configured on the Railway web service}"
-    : "${DB_CONNECTION:?DB_CONNECTION must be configured on the Railway web service}"
-    : "${DB_HOST:?DB_HOST must be configured on the Railway web service}"
-    : "${DB_DATABASE:?DB_DATABASE must be configured on the Railway web service}"
-    : "${DB_USERNAME:?DB_USERNAME must be configured on the Railway web service}"
-    : "${DB_PASSWORD:?DB_PASSWORD must be configured on the Railway web service}"
-fi
-
 echo "Starting HotelCheckin with APP_ENV=${APP_ENV:-production}, DB_CONNECTION=${DB_CONNECTION:-unset}, APP_URL=${APP_URL:-unset}"
 
 rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
