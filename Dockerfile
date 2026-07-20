@@ -13,14 +13,14 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --prefer-dist \
-    --optimize-autoloader \
-    --no-scripts
+    --optimize-autoloader
 
 FROM node:22-alpine AS frontend
 
 WORKDIR /app
 COPY . .
 COPY --from=php-dependencies /app/vendor ./vendor
+COPY --from=php-dependencies /app/bootstrap/cache ./bootstrap/cache
 RUN npm ci --no-audit --no-fund && npm run build
 
 FROM php:8.3-apache AS runtime

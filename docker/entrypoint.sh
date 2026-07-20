@@ -13,10 +13,4 @@ rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_eve
 sed -i -E "s/^Listen [0-9]+$/Listen ${port}/" /etc/apache2/ports.conf
 sed -i -E "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${port}>/" /etc/apache2/sites-available/000-default.conf
 
-php artisan package:discover --ansi
-php artisan config:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
 exec "$@"
