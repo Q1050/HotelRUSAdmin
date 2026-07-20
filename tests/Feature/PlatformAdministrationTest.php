@@ -20,6 +20,7 @@ class PlatformAdministrationTest extends TestCase
         $this->actingAs($hotelAdmin)->get(route('platform.hotels.index'))->assertForbidden();
 
         $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $this->actingAs($platformAdmin)->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Dashboard/Dashboard'));
         $this->actingAs($platformAdmin)->get(route('platform.overview'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Platform/Overview')->has('stats')->has('plans', 3));
         $this->actingAs($platformAdmin)->get(route('platform.hotels.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Platform/Hotels')->has('hotels')->has('plans', 3));
         $this->actingAs($platformAdmin)->get(route('platform.plans.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Platform/Plans')->has('plans', 3)->has('features', 11));

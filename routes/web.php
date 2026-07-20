@@ -22,9 +22,11 @@ Route::prefix('authenticate')->name('auth.')->middleware('guest')->group(functio
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 });
+Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardRoutes::class, 'mainScreen'])
+    ->middleware(['auth', 'verified', 'hotel', 'staff.permission:dashboard'])
+    ->name('dashboard');
 Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified', 'hotel', 'staff.permission:dashboard'])->group(function () {
     Route::patch('/notifications/read', [\App\Http\Controllers\Dashboard\NotificationController::class, 'read'])->name('notifications.read');
-    Route::get('/', [\App\Http\Controllers\Dashboard\DashboardRoutes::class, 'mainScreen'])->name('root');
     Route::middleware('staff.permission:guests')->group(function () {
         Route::get('/guests', [\App\Http\Controllers\Dashboard\DashboardRoutes::class, 'GuestScreen'])->name('guests.index');
         Route::get('/guests-search', [\App\Http\Controllers\Dashboard\GuestController::class, 'search'])->name('guests.search');
@@ -195,9 +197,6 @@ Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified', 
         Route::get('/reports/export', [\App\Http\Controllers\Dashboard\ReportController::class, 'export'])->name('reports.export');
     });
 });
-Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardRoutes::class, 'mainScreen'])
-    ->middleware(['auth', 'verified', 'hotel', 'staff.permission:dashboard'])
-    ->name('dashboard');
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
