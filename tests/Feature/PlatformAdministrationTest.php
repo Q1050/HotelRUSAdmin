@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Hotel;
 use App\Models\HotelFeatureOverride;
+use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,6 +14,23 @@ use Tests\TestCase;
 class PlatformAdministrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_platform_admin_can_group_a_property_and_enable_shared_profiles(): void
+    {
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $hotel = Hotel::firstOrFail();
+
+        $this->actingAs($platformAdmin)->post(route('platform.organizations.store'), ['name' => 'Harbor Collection', 'slug' => 'harbor-collection'])->assertSessionHasNoErrors();
+        $organization = Organization::where('slug', 'harbor-collection')->firstOrFail();
+        $this->patch(route('platform.organizations.update', $organization), ['name' => 'Harbor Collection', 'slug' => 'harbor-collection', 'status' => 'active', 'display_name' => 'Harbor Hotels', 'primary_color' => '#112233', 'accent_color' => '#DDAA22', 'support_email' => 'support@harbor.test', 'support_phone' => '876-555-0100'])->assertSessionHasNoErrors();
+        $this->patch(route('platform.hotels.organization', $hotel), ['organization_id' => $organization->id, 'inherit_branding' => true, 'inherit_fcm' => true])->assertSessionHasNoErrors();
+
+        $hotel->refresh();
+        $this->assertTrue($hotel->inherits('branding'));
+        $this->assertTrue($hotel->inherits('fcm'));
+        $this->assertSame('Harbor Hotels', \App\Services\PropertySettings::publicData($hotel)['name']);
+        $this->get(route('platform.organizations.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Platform/Organizations')->has('organizations', 1));
+    }
 
     public function test_only_platform_administrators_can_open_control_panel(): void
     {

@@ -57,6 +57,11 @@ class User extends Authenticatable
         return $this->belongsTo(StaffRole::class);
     }
 
+    public function organizations()
+    {
+        return $this->belongsToMany(Organization::class)->withPivot('role')->withTimestamps();
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *

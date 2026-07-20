@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Platform\HotelController;
 use App\Http\Controllers\Platform\BillingController;
+use App\Http\Controllers\Platform\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/platform/impersonation/stop',[HotelController::class,'stopImpersonating'])->middleware('auth')->name('platform.impersonation.stop');
@@ -17,6 +18,11 @@ Route::prefix('platform')->name('platform.')->middleware(['auth','verified','pla
     Route::post('/billing/{hotel}/checkout',[BillingController::class,'checkout'])->name('billing.checkout');
     Route::post('/billing/{hotel}/portal',[BillingController::class,'portal'])->name('billing.portal');
     Route::get('/hotels',[HotelController::class,'index'])->name('hotels.index');
+    Route::get('/organizations',[OrganizationController::class,'index'])->name('organizations.index');
+    Route::post('/organizations',[OrganizationController::class,'store'])->name('organizations.store');
+    Route::patch('/organizations/{organization}',[OrganizationController::class,'update'])->name('organizations.update');
+    Route::post('/organizations/{organization}/fcm',[OrganizationController::class,'fcm'])->name('organizations.fcm');
+    Route::patch('/hotels/{hotel}/organization',[OrganizationController::class,'assign'])->name('hotels.organization');
     Route::get('/hotels/{hotel}/onboarding',[HotelController::class,'onboarding'])->name('hotels.onboarding');
     Route::patch('/hotels/{hotel}/onboarding/profile',[HotelController::class,'updateOnboardingProfile'])->name('hotels.onboarding.profile');
     Route::post('/hotels/{hotel}/onboarding/branding',[HotelController::class,'updateBranding'])->name('hotels.onboarding.branding');

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, Building2, ChevronRight, CreditCard, Hotel, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { Activity, Building2, ChevronRight, CreditCard, Hotel, LayoutDashboard, LogOut, Menu, Network, ShieldCheck, X } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 
 export function PlatformLayout({ children }: { children: ReactNode }) {
@@ -19,6 +19,7 @@ export function PlatformLayout({ children }: { children: ReactNode }) {
             <p className="mb-2 px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Management</p>
             {nav(route('platform.overview'),'Overview',<LayoutDashboard size={18}/>,path==='/platform'||path==='/platform/')}
             {nav(route('platform.hotels.index'),'Client hotels',<Hotel size={18}/>,path.startsWith('/platform/hotels'))}
+            {nav(route('platform.organizations.index'),'Hotel groups',<Network size={18}/>,path.startsWith('/platform/organizations'))}
             {nav(route('platform.plans.index'),'Plans & modules',<CreditCard size={18}/>,path.startsWith('/platform/plans'))}
             {nav(route('platform.billing.index'),'Billing',<CreditCard size={18}/>,path.startsWith('/platform/billing'))}
             {nav(route('platform.activity.index'),'Platform activity',<Activity size={18}/>,path.startsWith('/platform/activity'))}
