@@ -11,6 +11,7 @@ class PropertySettings
 {
     public function update(Request $request, Hotel $hotel): array
     {
+        $disk = config('filesystems.asset_disk', 'public');
         $data = $request->validate([
             'display_name' => 'required|string|max:150', 'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'], 'accent_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'support_email' => 'required|email|max:255', 'support_phone' => 'required|string|max:40', 'email_sender_name' => 'required|string|max:100', 'welcome_message' => 'nullable|string|max:1000',
@@ -20,12 +21,12 @@ class PropertySettings
         ]);
         $settings = $hotel->settings ?? [];
         if ($request->boolean('remove_logo') && ! empty($settings['logo_path'])) {
-            Storage::disk('public')->delete($settings['logo_path']);
+            Storage::disk($disk)->delete($settings['logo_path']);
             unset($settings['logo_path']);
         }
         if ($request->hasFile('logo')) {
-            if (! empty($settings['logo_path'])) Storage::disk('public')->delete($settings['logo_path']);
-            $settings['logo_path'] = $request->file('logo')->store("hotels/{$hotel->id}/branding", 'public');
+            if (! empty($settings['logo_path'])) Storage::disk($disk)->delete($settings['logo_path']);
+            $settings['logo_path'] = $request->file('logo')->store("hotels/{$hotel->id}/branding", $disk);
         }
         unset($data['logo'], $data['remove_logo']);
         $hotel->update(['settings' => array_merge($settings, ['branding' => $data])]);
@@ -35,6 +36,7 @@ class PropertySettings
 
     public static function publicData(Hotel $hotel): array
     {
+        $disk = config('filesystems.asset_disk', 'public');
         $settings = $hotel->settings ?? [];
         $localBranding = $settings['branding'] ?? [];
         $groupBranding = $hotel->inherits('branding') ? ($hotel->organization?->settings['branding'] ?? []) : [];
@@ -46,7 +48,7 @@ class PropertySettings
 
         return [
             'name' => $branding['display_name'] ?? $hotel->name, 'slug' => $hotel->slug,
-            'logo_url' => ! empty($settings['logo_path']) ? Storage::disk('public')->url($settings['logo_path']) : null,
+            'logo_url' => ! empty($settings['logo_path']) ? Storage::disk($disk)->url($settings['logo_path']) : null,
             'primary_color' => $branding['primary_color'] ?? '#1E3A5F', 'accent_color' => $branding['accent_color'] ?? '#D4AF37',
             'support' => ['email' => $branding['support_email'] ?? $settings['contact_email'] ?? null, 'phone' => $branding['support_phone'] ?? $settings['phone'] ?? null],
             'welcome_message' => $branding['welcome_message'] ?? null,

@@ -11,6 +11,15 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Artisan::command('storage:asset-check', function () {
+    $disk = config('filesystems.asset_disk', 'public');
+    $path = 'health/storage-check-'.str()->uuid().'.txt';
+    Storage::disk($disk)->put($path, 'HotelCheckin asset storage check '.now()->toISOString());
+    $this->info("Write succeeded on [{$disk}]. URL: ".Storage::disk($disk)->url($path));
+    Storage::disk($disk)->delete($path);
+    $this->info('Read/write/delete asset storage check passed.');
+})->purpose('Verify the configured public asset disk can write, resolve URLs, and delete.');
+
 Artisan::command('privacy:purge-id-documents', function () {
     $purged = 0;
     \App\Models\Hotel::query()->each(function ($hotel) use (&$purged) {
